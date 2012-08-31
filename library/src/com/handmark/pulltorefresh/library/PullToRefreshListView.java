@@ -18,7 +18,10 @@ package com.handmark.pulltorefresh.library;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.os.Parcelable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -28,16 +31,32 @@ import android.widget.ListView;
 import com.handmark.pulltorefresh.library.internal.EmptyViewMethodAccessor;
 import com.handmark.pulltorefresh.library.internal.LoadingLayout;
 
-public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView> {
+import de.viktorreiser.toolbox.widget.SwipeableListView;
+
+public class PullToRefreshListView extends
+		PullToRefreshAdapterViewBase<ListView> {
 
 	private LoadingLayout mHeaderLoadingView;
 	private LoadingLayout mFooterLoadingView;
 
 	private FrameLayout mLvFooterLoadingFrame;
+	private boolean mIsSwipeable;
 
 	public PullToRefreshListView(Context context) {
 		super(context);
 		setDisableScrollingWhileRefreshing(false);
+	}
+
+	@Override
+	protected void onRestoreInstanceState(Parcelable state) {
+		Log.d("Pull", "onRestoreInstance PullToRefreshListView");
+		super.onRestoreInstanceState(state);
+	}
+
+	@Override
+	protected Parcelable onSaveInstanceState() {
+		Log.d("Pull", "onSaveInstance PullToRefreshListView");
+		return super.onSaveInstanceState();
 	}
 
 	public PullToRefreshListView(Context context, AttributeSet attrs) {
@@ -52,7 +71,7 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 
 	@Override
 	public ContextMenuInfo getContextMenuInfo() {
-		return ((InternalListView) getRefreshableView()).getContextMenuInfo();
+		return ((IContextMenuInfo) getRefreshableView()).getContextMenuInfo();
 	}
 
 	public void setPullLabel(String pullLabel, Mode mode) {
@@ -89,22 +108,35 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 	}
 
 	@Override
-	protected final ListView createRefreshableView(Context context, AttributeSet attrs) {
-		ListView lv = new InternalListView(context, attrs);
+	protected final ListView createRefreshableView(Context context,
+			AttributeSet attrs) {
 
 		// Get Styles from attrs
-		TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.PullToRefresh);
+		TypedArray a = context.obtainStyledAttributes(attrs,
+				R.styleable.PullToRefresh);
 
+		if (a.hasValue(R.styleable.PullToRefresh_ptrIsSwipeable)) {
+			mIsSwipeable = a.getBoolean(
+					R.styleable.PullToRefresh_ptrIsSwipeable, false);
+		} else {
+			throw new RuntimeException("ptrIsSwipeable attribute is requiered");
+		}
+		ListView lv = mIsSwipeable ? new InternalSwipeableListView(context,
+				attrs) : new InternalRegularListView(context, attrs);
 		// Create Loading Views ready for use later
 		FrameLayout frame = new FrameLayout(context);
-		mHeaderLoadingView = new LoadingLayout(context, Mode.PULL_DOWN_TO_REFRESH, a);
-		frame.addView(mHeaderLoadingView, FrameLayout.LayoutParams.FILL_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+		mHeaderLoadingView = new LoadingLayout(context,
+				Mode.PULL_DOWN_TO_REFRESH, a);
+		frame.addView(mHeaderLoadingView, FrameLayout.LayoutParams.FILL_PARENT,
+				FrameLayout.LayoutParams.WRAP_CONTENT);
 		mHeaderLoadingView.setVisibility(View.GONE);
 		lv.addHeaderView(frame, null, false);
 
 		mLvFooterLoadingFrame = new FrameLayout(context);
-		mFooterLoadingView = new LoadingLayout(context, Mode.PULL_UP_TO_REFRESH, a);
-		mLvFooterLoadingFrame.addView(mFooterLoadingView, FrameLayout.LayoutParams.FILL_PARENT,
+		mFooterLoadingView = new LoadingLayout(context,
+				Mode.PULL_UP_TO_REFRESH, a);
+		mLvFooterLoadingFrame.addView(mFooterLoadingView,
+				FrameLayout.LayoutParams.FILL_PARENT,
 				FrameLayout.LayoutParams.WRAP_CONTENT);
 		mFooterLoadingView.setVisibility(View.GONE);
 
@@ -130,7 +162,11 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 		// the header/footer views won't show so we use the
 		// normal method
 		ListAdapter adapter = mRefreshableView.getAdapter();
-		if (!getShowViewWhileRefreshing() || null == adapter || adapter.isEmpty()) {
+		/*
+		 * if (!getShowViewWhileRefreshing() || null == adapter ||
+		 * adapter.isEmpty()) {
+		 */
+		if (!getShowViewWhileRefreshing()) {
 			super.resetHeader();
 			return;
 		}
@@ -143,20 +179,20 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 		boolean scroll;
 
 		switch (getCurrentMode()) {
-			case PULL_UP_TO_REFRESH:
-				originalLoadingLayout = getFooterLayout();
-				listViewLoadingLayout = mFooterLoadingView;
-				selection = mRefreshableView.getCount() - 1;
-				scroll = mRefreshableView.getLastVisiblePosition() == selection;
-				break;
-			case PULL_DOWN_TO_REFRESH:
-			default:
-				originalLoadingLayout = getHeaderLayout();
-				listViewLoadingLayout = mHeaderLoadingView;
-				scrollToHeight *= -1;
-				selection = 0;
-				scroll = mRefreshableView.getFirstVisiblePosition() == selection;
-				break;
+		case PULL_UP_TO_REFRESH:
+			originalLoadingLayout = getFooterLayout();
+			listViewLoadingLayout = mFooterLoadingView;
+			selection = mRefreshableView.getCount() - 1;
+			scroll = mRefreshableView.getLastVisiblePosition() == selection;
+			break;
+		case PULL_DOWN_TO_REFRESH:
+		default:
+			originalLoadingLayout = getHeaderLayout();
+			listViewLoadingLayout = mHeaderLoadingView;
+			scrollToHeight *= -1;
+			selection = 0;
+			scroll = mRefreshableView.getFirstVisiblePosition() == selection;
+			break;
 		}
 
 		// Set our Original View to Visible
@@ -180,35 +216,41 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 
 	@Override
 	protected void setRefreshingInternal(boolean doScroll) {
-
 		// If we're not showing the Refreshing view, or the list is empty, then
 		// the header/footer views won't show so we use the
 		// normal method
+		Log.d(LOG_TAG, "setRefreshingInternal");
 		ListAdapter adapter = mRefreshableView.getAdapter();
-		if (!getShowViewWhileRefreshing() || null == adapter || adapter.isEmpty()) {
+		if (!getShowViewWhileRefreshing()) {
+			/*
+			 * } if (!getShowViewWhileRefreshing() || null == adapter ||
+			 * adapter.isEmpty()) {
+			 */
+			Log.d(LOG_TAG, "1");
 			super.setRefreshingInternal(doScroll);
 			return;
 		}
 
+		Log.d(LOG_TAG, "2");
 		super.setRefreshingInternal(false);
 
 		final LoadingLayout originalLoadingLayout, listViewLoadingLayout;
 		final int selection, scrollToY;
 
 		switch (getCurrentMode()) {
-			case PULL_UP_TO_REFRESH:
-				originalLoadingLayout = getFooterLayout();
-				listViewLoadingLayout = mFooterLoadingView;
-				selection = mRefreshableView.getCount() - 1;
-				scrollToY = getScrollY() - getHeaderHeight();
-				break;
-			case PULL_DOWN_TO_REFRESH:
-			default:
-				originalLoadingLayout = getHeaderLayout();
-				listViewLoadingLayout = mHeaderLoadingView;
-				selection = 0;
-				scrollToY = getScrollY() + getHeaderHeight();
-				break;
+		case PULL_UP_TO_REFRESH:
+			originalLoadingLayout = getFooterLayout();
+			listViewLoadingLayout = mFooterLoadingView;
+			selection = mRefreshableView.getCount() - 1;
+			scrollToY = getScrollY() - getHeaderHeight();
+			break;
+		case PULL_DOWN_TO_REFRESH:
+		default:
+			originalLoadingLayout = getHeaderLayout();
+			listViewLoadingLayout = mHeaderLoadingView;
+			selection = 0;
+			scrollToY = getScrollY() + getHeaderHeight();
+			break;
 		}
 
 		if (doScroll) {
@@ -234,11 +276,12 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 		}
 	}
 
-	class InternalListView extends ListView implements EmptyViewMethodAccessor {
+	class InternalSwipeableListView extends SwipeableListView implements
+			EmptyViewMethodAccessor, IContextMenuInfo {
 
 		private boolean mAddedLvFooter = false;
 
-		public InternalListView(Context context, AttributeSet attrs) {
+		public InternalSwipeableListView(Context context, AttributeSet attrs) {
 			super(context, attrs);
 		}
 
@@ -256,6 +299,7 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 			}
 		}
 
+		@Override
 		public ContextMenuInfo getContextMenuInfo() {
 			return super.getContextMenuInfo();
 		}
@@ -280,6 +324,60 @@ public class PullToRefreshListView extends PullToRefreshAdapterViewBase<ListView
 		public void setEmptyViewInternal(View emptyView) {
 			super.setEmptyView(emptyView);
 		}
+	}
+
+	class InternalRegularListView extends ListView implements
+			EmptyViewMethodAccessor, IContextMenuInfo {
+
+		private boolean mAddedLvFooter = false;
+
+		public InternalRegularListView(Context context, AttributeSet attrs) {
+			super(context, attrs);
+		}
+
+		@Override
+		public void draw(Canvas canvas) {
+			/**
+			 * This is a bit hacky, but ListView has got a bug in it when using
+			 * Header/Footer Views and the list is empty. This masks the issue
+			 * so that it doesn't cause an FC. See Issue #66.
+			 */
+			try {
+				super.draw(canvas);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		@Override
+		public ContextMenuInfo getContextMenuInfo() {
+			return super.getContextMenuInfo();
+		}
+
+		@Override
+		public void setAdapter(ListAdapter adapter) {
+			// Add the Footer View at the last possible moment
+			if (!mAddedLvFooter) {
+				addFooterView(mLvFooterLoadingFrame, null, false);
+				mAddedLvFooter = true;
+			}
+
+			super.setAdapter(adapter);
+		}
+
+		@Override
+		public void setEmptyView(View emptyView) {
+			PullToRefreshListView.this.setEmptyView(emptyView);
+		}
+
+		@Override
+		public void setEmptyViewInternal(View emptyView) {
+			super.setEmptyView(emptyView);
+		}
+	}
+
+	public interface IContextMenuInfo {
+		ContextMenuInfo getContextMenuInfo();
 	}
 
 }

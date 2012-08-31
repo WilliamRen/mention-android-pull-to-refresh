@@ -208,6 +208,7 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 		}
 
 		if (isRefreshing() && mDisableScrollingWhileRefreshing) {
+			getParent().requestDisallowInterceptTouchEvent(true);
 			return true;
 		}
 
@@ -219,6 +220,7 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 		}
 
 		if (action != MotionEvent.ACTION_DOWN && mIsBeingDragged) {
+			getParent().requestDisallowInterceptTouchEvent(true);
 			return true;
 		}
 
@@ -258,7 +260,9 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 				break;
 			}
 		}
-
+		if (mIsBeingDragged) {
+			getParent().requestDisallowInterceptTouchEvent(true);
+		}
 		return mIsBeingDragged;
 	}
 
@@ -326,7 +330,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 							}
 							return true;
 						}
-
 						return true;
 					}
 
@@ -512,8 +515,11 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 	 */
 	public final void setRefreshing(boolean doScroll) {
 		if (!isRefreshing()) {
+			Log.d(LOG_TAG, "setRefreshing");
 			setRefreshingInternal(doScroll);
 			mState = MANUAL_REFRESHING;
+		} else {
+			Log.d(LOG_TAG, "Not setRefreshing");
 		}
 	}
 
@@ -805,6 +811,7 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 	}
 
 	private void init(Context context, AttributeSet attrs) {
+		Log.d("Pull", "init");
 		setOrientation(LinearLayout.VERTICAL);
 
 		ViewConfiguration config = ViewConfiguration.get(context);
