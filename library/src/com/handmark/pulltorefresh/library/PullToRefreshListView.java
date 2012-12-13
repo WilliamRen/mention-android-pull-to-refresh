@@ -18,7 +18,6 @@ package com.handmark.pulltorefresh.library;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
 import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -380,4 +379,11 @@ public class PullToRefreshListView extends
 		ContextMenuInfo getContextMenuInfo();
 	}
 
+	public void setLoadMoreVisibility(int visibility) {
+		mFooterLoadingView.setVisibility(visibility);
+	}
+
+	public boolean isLoadMoreVisible() {
+		return mFooterLoadingView.getVisibility() == View.VISIBLE;
+	}
 }

@@ -57,17 +57,21 @@ public class LoadingLayout extends FrameLayout {
 
 	public LoadingLayout(Context context, final Mode mode, TypedArray attrs) {
 		super(context);
-		ViewGroup header = (ViewGroup) LayoutInflater.from(context).inflate(R.layout.pull_to_refresh_header, this);
+		ViewGroup header = (ViewGroup) LayoutInflater.from(context).inflate(
+				R.layout.pull_to_refresh_header, this);
 		mHeaderText = (TextView) header.findViewById(R.id.pull_to_refresh_text);
-		mSubHeaderText = (TextView) header.findViewById(R.id.pull_to_refresh_sub_text);
-		mHeaderImage = (ImageView) header.findViewById(R.id.pull_to_refresh_image);
+		mSubHeaderText = (TextView) header
+				.findViewById(R.id.pull_to_refresh_sub_text);
+		mHeaderImage = (ImageView) header
+				.findViewById(R.id.pull_to_refresh_image);
 
 		mHeaderImage.setScaleType(ScaleType.MATRIX);
 		mHeaderImageMatrix = new Matrix();
 		mHeaderImage.setImageMatrix(mHeaderImageMatrix);
 
 		final Interpolator interpolator = new LinearInterpolator();
-		mRotateAnimation = new RotateAnimation(0, 360, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
+		mRotateAnimation = new RotateAnimation(0, 360,
+				Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF,
 				0.5f);
 		mRotateAnimation.setInterpolator(interpolator);
 		mRotateAnimation.setDuration(DEFAULT_ROTATION_ANIMATION_DURATION);
@@ -75,32 +79,43 @@ public class LoadingLayout extends FrameLayout {
 		mRotateAnimation.setRepeatMode(Animation.RESTART);
 
 		switch (mode) {
-			case PULL_UP_TO_REFRESH:
-				// Load in labels
-				mPullLabel = context.getString(R.string.pull_to_refresh_from_bottom_pull_label);
-				mRefreshingLabel = context.getString(R.string.pull_to_refresh_from_bottom_refreshing_label);
-				mReleaseLabel = context.getString(R.string.pull_to_refresh_from_bottom_release_label);
-				break;
+		case PULL_UP_TO_REFRESH:
+			// Load in labels
+			mPullLabel = context
+					.getString(R.string.pull_to_refresh_from_bottom_pull_label);
+			mRefreshingLabel = context
+					.getString(R.string.pull_to_refresh_from_bottom_refreshing_label);
+			mReleaseLabel = context
+					.getString(R.string.pull_to_refresh_from_bottom_release_label);
+			break;
 
-			case PULL_DOWN_TO_REFRESH:
-			default:
-				// Load in labels
-				mPullLabel = context.getString(R.string.pull_to_refresh_pull_label);
-				mRefreshingLabel = context.getString(R.string.pull_to_refresh_refreshing_label);
-				mReleaseLabel = context.getString(R.string.pull_to_refresh_release_label);
-				break;
+		case PULL_DOWN_TO_REFRESH:
+		default:
+			// Load in labels
+			mPullLabel = context.getString(R.string.loading_more_label);
+			mHeaderImage.setVisibility(View.GONE);
+			mRefreshingLabel = context
+					.getString(R.string.pull_to_refresh_refreshing_label);
+			mReleaseLabel = context
+					.getString(R.string.pull_to_refresh_release_label);
+			break;
 		}
 
 		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderTextColor)) {
-			ColorStateList colors = attrs.getColorStateList(R.styleable.PullToRefresh_ptrHeaderTextColor);
-			setTextColor(null != colors ? colors : ColorStateList.valueOf(0xFF000000));
+			ColorStateList colors = attrs
+					.getColorStateList(R.styleable.PullToRefresh_ptrHeaderTextColor);
+			setTextColor(null != colors ? colors : ColorStateList
+					.valueOf(0xFF000000));
 		}
 		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderSubTextColor)) {
-			ColorStateList colors = attrs.getColorStateList(R.styleable.PullToRefresh_ptrHeaderSubTextColor);
-			setSubTextColor(null != colors ? colors : ColorStateList.valueOf(0xFF000000));
+			ColorStateList colors = attrs
+					.getColorStateList(R.styleable.PullToRefresh_ptrHeaderSubTextColor);
+			setSubTextColor(null != colors ? colors : ColorStateList
+					.valueOf(0xFF000000));
 		}
 		if (attrs.hasValue(R.styleable.PullToRefresh_ptrHeaderBackground)) {
-			Drawable background = attrs.getDrawable(R.styleable.PullToRefresh_ptrHeaderBackground);
+			Drawable background = attrs
+					.getDrawable(R.styleable.PullToRefresh_ptrHeaderBackground);
 			if (null != background) {
 				setBackgroundDrawable(background);
 			}
@@ -109,16 +124,20 @@ public class LoadingLayout extends FrameLayout {
 		// Try and get defined drawable from Attrs
 		Drawable imageDrawable = null;
 		if (attrs.hasValue(R.styleable.PullToRefresh_ptrDrawable)) {
-			imageDrawable = attrs.getDrawable(R.styleable.PullToRefresh_ptrDrawable);
+			imageDrawable = attrs
+					.getDrawable(R.styleable.PullToRefresh_ptrDrawable);
 		}
 
 		// If we don't have a user defined drawable, load the default
 		if (null == imageDrawable) {
-			imageDrawable = context.getResources().getDrawable(R.drawable.default_ptr_drawable);
+			imageDrawable = context.getResources().getDrawable(
+					R.drawable.default_ptr_drawable);
 		}
 
 		// Set Drawable, and save width/height
-		setLoadingDrawable(imageDrawable);
+		if (mode != Mode.PULL_UP_TO_REFRESH) {
+			setLoadingDrawable(imageDrawable);
+		}
 
 		reset();
 	}
@@ -198,7 +217,8 @@ public class LoadingLayout extends FrameLayout {
 	}
 
 	public void onPullY(float scaleOfHeight) {
-		mHeaderImageMatrix.setRotate(scaleOfHeight * 90, mRotationPivotX, mRotationPivotY);
+		mHeaderImageMatrix.setRotate(scaleOfHeight * 90, mRotationPivotX,
+				mRotationPivotY);
 		mHeaderImage.setImageMatrix(mHeaderImageMatrix);
 	}
 
