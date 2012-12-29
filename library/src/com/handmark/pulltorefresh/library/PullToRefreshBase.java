@@ -207,11 +207,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 			return false;
 		}
 
-		if (isRefreshing() && mDisableScrollingWhileRefreshing) {
-			getParent().requestDisallowInterceptTouchEvent(true);
-			return true;
-		}
-
 		final int action = event.getAction();
 
 		if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
@@ -220,12 +215,16 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 		}
 
 		if (action != MotionEvent.ACTION_DOWN && mIsBeingDragged) {
-			getParent().requestDisallowInterceptTouchEvent(true);
 			return true;
 		}
 
 		switch (action) {
 			case MotionEvent.ACTION_MOVE: {
+				// If we're refreshing, and the flag is set. Eat all MOVE events
+				if (mDisableScrollingWhileRefreshing && isRefreshing()) {
+					return true;
+				}
+
 				if (isReadyForPull()) {
 
 					final float y = event.getY();
@@ -260,9 +259,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 				break;
 			}
 		}
-		if (mIsBeingDragged) {
-			getParent().requestDisallowInterceptTouchEvent(true);
-		}
 		return mIsBeingDragged;
 	}
 
@@ -282,7 +278,8 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 			return false;
 		}
 
-		if (isRefreshing() && mDisableScrollingWhileRefreshing) {
+		// If we're refreshing, and the flag is set. Eat the event
+		if (mDisableScrollingWhileRefreshing && isRefreshing()) {
 			return true;
 		}
 
@@ -291,7 +288,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 		}
 
 		switch (event.getAction()) {
-
 			case MotionEvent.ACTION_MOVE: {
 				if (mIsBeingDragged) {
 					mLastMotionY = event.getY();
@@ -315,7 +311,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 					mIsBeingDragged = false;
 
 					if (mState == RELEASE_TO_REFRESH) {
-
 						if (null != mOnRefreshListener) {
 							setRefreshingInternal(true);
 							mOnRefreshListener.onRefresh();
@@ -329,8 +324,11 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 								mOnRefreshListener2.onPullUpToRefresh();
 							}
 							return true;
+						} else {
+							// If we don't have a listener, just reset
+							resetHeader();
+							return true;
 						}
-						return true;
 					}
 
 					smoothScrollTo(0);
@@ -503,7 +501,7 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout {
 	}
 
 	public final void setRefreshing() {
-		setRefreshing(true);
+		setRefreshing(false);
 	}
 
 	/**
