@@ -243,9 +243,11 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 		switch (action) {
 			case MotionEvent.ACTION_MOVE: {
 				// If we're refreshing, and the flag is set. Eat all MOVE events
-				if (!mScrollingWhileRefreshingEnabled && isRefreshing()) {
+				if (mDisableScrollingWhileRefreshing && isRefreshing()) {
 					return true;
 				}
+
+				if (isReadyForPull()) {
 
 				if (isReadyForPull()) {
 					final float y = event.getY(), x = event.getX();
@@ -295,7 +297,6 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 				break;
 			}
 		}
-
 		return mIsBeingDragged;
 	}
 
@@ -314,7 +315,7 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 		}
 
 		// If we're refreshing, and the flag is set. Eat the event
-		if (!mScrollingWhileRefreshingEnabled && isRefreshing()) {
+		if (mDisableScrollingWhileRefreshing && isRefreshing()) {
 			return true;
 		}
 
@@ -347,16 +348,25 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 				if (mIsBeingDragged) {
 					mIsBeingDragged = false;
 
-					if (mState == State.RELEASE_TO_REFRESH
-							&& (null != mOnRefreshListener || null != mOnRefreshListener2)) {
-						setState(State.REFRESHING, true);
-						return true;
-					}
+					if (mState == RELEASE_TO_REFRESH) {
+						if (null != mOnRefreshListener) {
+							setRefreshingInternal(true);
+							mOnRefreshListener.onRefresh();
+							return true;
 
-					// If we're already refreshing, just scroll back to the top
-					if (isRefreshing()) {
-						smoothScrollTo(0);
-						return true;
+						} else if (null != mOnRefreshListener2) {
+							setRefreshingInternal(true);
+							if (mCurrentMode == Mode.PULL_DOWN_TO_REFRESH) {
+								mOnRefreshListener2.onPullDownToRefresh();
+							} else if (mCurrentMode == Mode.PULL_UP_TO_REFRESH) {
+								mOnRefreshListener2.onPullUpToRefresh();
+							}
+							return true;
+						} else {
+							// If we don't have a listener, just reset
+							resetHeader();
+							return true;
+						}
 					}
 
 					// If we haven't returned by here, then we're not in a state
@@ -477,13 +487,17 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 
 	@Override
 	public final void setRefreshing() {
-		setRefreshing(true);
+		setRefreshing(false);
 	}
 
 	@Override
 	public final void setRefreshing(boolean doScroll) {
 		if (!isRefreshing()) {
-			setState(State.MANUAL_REFRESHING, doScroll);
+			Log.d(LOG_TAG, "setRefreshing");
+			setRefreshingInternal(doScroll);
+			mState = MANUAL_REFRESHING;
+		} else {
+			Log.d(LOG_TAG, "Not setRefreshing");
 		}
 	}
 
@@ -1072,17 +1086,8 @@ public abstract class PullToRefreshBase<T extends View> extends LinearLayout imp
 
 	@SuppressWarnings("deprecation")
 	private void init(Context context, AttributeSet attrs) {
-		switch (getPullToRefreshScrollDirection()) {
-			case HORIZONTAL:
-				setOrientation(LinearLayout.HORIZONTAL);
-				break;
-			case VERTICAL:
-			default:
-				setOrientation(LinearLayout.VERTICAL);
-				break;
-		}
-
-		setGravity(Gravity.CENTER);
+		Log.d("Pull", "init");
+		setOrientation(LinearLayout.VERTICAL);
 
 		ViewConfiguration config = ViewConfiguration.get(context);
 		mTouchSlop = config.getScaledTouchSlop();

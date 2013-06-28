@@ -30,8 +30,7 @@
 
         <!-- Whether the Indicator overlay(s) should be used -->
         <attr name="ptrShowIndicator" format="reference|boolean" />
-
-        <!-- Drawable to use as Loading Indicator. Changes both Header and Footer. -->
+        <attr name="ptrIsSwipeable" format="reference|boolean" />
         <attr name="ptrDrawable" format="reference" />
 
         <!-- Drawable to use as Loading Indicator in the Header View. Overrides value set in ptrDrawable. -->
